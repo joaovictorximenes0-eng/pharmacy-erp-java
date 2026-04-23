@@ -1,7 +1,6 @@
 package controller;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -15,34 +14,38 @@ public class UsuarioServlet extends HttpServlet {
 
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
-		response.setContentType("text/html;charset=UTF-8");
-		PrintWriter out = response.getWriter();
-
-		// 1. Inicia o EntityManager (O "gerente" do Hibernate)
 		javax.persistence.EntityManager em = config.JPAUtil.getEntityManager();
-
-		out.println("<html><body><h2>Lista via Hibernate (JPA)</h2><table border='1'>");
-		out.println("<tr><th>ID</th><th>Nome</th><th>Status</th></tr>");
+		String acao = request.getParameter("acao");
+		String idParam = request.getParameter("id");
 
 		try {
-			// 2. Consulta usando JPQL (A linguagem do Hibernate - foca no Objeto, não na
-			// tabela)
+			// 1. Processa a ação (se o botão ativar/desativar for clicado)
+			if ("alternar".equals(acao) && idParam != null) {
+				em.getTransaction().begin();
+				int id = Integer.parseInt(idParam);
+				model.Usuario u = em.find(model.Usuario.class, id);
+
+				if (u != null) {
+					u.setAtivo(!u.isAtivo()); // Inverte o status
+				}
+				em.getTransaction().commit();
+			}
+
+			// 2. Busca a lista atualizada no banco
 			java.util.List<model.Usuario> lista = em.createQuery("from Usuario", model.Usuario.class).getResultList();
 
-			for (model.Usuario u : lista) {
-				String status = u.isAtivo() ? "Ativo" : "Inativo";
-				out.println("<tr>");
-				out.println("<td>" + u.getId() + "</td>");
-				out.println("<td>" + u.getNome() + "</td>");
-				out.println("<td>" + status + "</td>");
-				out.println("</tr>");
-			}
+			// 3. Coloca a lista na "mochila" (request) para o JSP poder ler
+			request.setAttribute("listaUsuarios", lista);
+
+			// 4. Redireciona silenciosamente para o JSP fazer o visual
+			request.getRequestDispatcher("/listaUsuarios.jsp").forward(request, response);
+
 		} catch (Exception e) {
-			out.println("Erro: " + e.getMessage());
+			if (em.getTransaction().isActive())
+				em.getTransaction().rollback();
+			throw new ServletException("Erro ao processar usuários", e);
 		} finally {
 			em.close();
 		}
-
-		out.println("</table><br><a href='index.html'>Voltar</a></body></html>");
 	}
 }
