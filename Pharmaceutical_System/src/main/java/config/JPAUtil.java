@@ -15,43 +15,34 @@ public class JPAUtil {
 
 	static {
 		try {
-			System.out.println("=== [JPAUtil] Iniciando configuração do Hibernate ===");
+			// Tenta carregar do classpath de forma explícita
+			Dotenv dotenv = Dotenv.configure().load();
 
-			// Tenta carregar o .env da raiz do projeto (./)
-			Dotenv dotenv = Dotenv.configure().directory("./").ignoreIfMalformed().ignoreIfMissing().load();
-
-			// Se não achou na raiz, o dotenv.get retornará null.
-			// Vamos validar e avisar no console.
 			String url = dotenv.get("DB_URL");
-			String user = dotenv.get("DB_USER");
-			String pass = dotenv.get("DB_PASSWORD");
+			System.out.println("DEBUG - Valor de DB_URL: " + url); // OLHE ISSO NO CONSOLE DO ECLIPSE
 
 			if (url == null) {
-				System.err.println("=== [JPAUtil] AVISO: .env não encontrado na raiz. Verifique o diretório! ===");
-			} else {
-				System.out.println("=== [JPAUtil] .env carregado com sucesso da raiz ===");
+				// Se ainda for null, vamos tentar ler sem o Dotenv só para testar
+				System.err.println(
+						"ERRO: Dotenv não conseguiu ler as chaves. Verifique se o arquivo .env está em src/main/resources");
+				throw new RuntimeException("Variáveis de ambiente não encontradas no .env!");
 			}
 
 			Map<String, String> properties = new HashMap<>();
 			properties.put("javax.persistence.jdbc.url", url);
-			properties.put("javax.persistence.jdbc.user", user);
-			properties.put("javax.persistence.jdbc.password", pass);
+			properties.put("javax.persistence.jdbc.user", dotenv.get("DB_USER"));
+			properties.put("javax.persistence.jdbc.password", dotenv.get("DB_PASSWORD"));
 
-			// Tenta criar a fábrica de conexões
 			FACTORY = Persistence.createEntityManagerFactory("erp", properties);
-			System.out.println("=== [JPAUtil] Hibernate conectado com sucesso! ===");
+			System.out.println("HIBERNATE: Factory criada com sucesso!");
 
 		} catch (Exception e) {
-			System.err.println("=== [JPAUtil] ERRO FATAL ao iniciar Hibernate ===");
 			e.printStackTrace();
 			throw new RuntimeException("Erro ao configurar JPA: " + e.getMessage());
 		}
 	}
 
 	public static EntityManager getEntityManager() {
-		if (FACTORY == null) {
-			throw new RuntimeException("A Factory do JPA não foi inicializada corretamente.");
-		}
 		return FACTORY.createEntityManager();
 	}
 }
