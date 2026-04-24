@@ -30,46 +30,56 @@ public class EsqueciSenhaServlet extends HttpServlet {
 
 			Usuario u = null;
 			try {
-				// Tenta achar o usuário pelo e-mail usando Hibernate (JPA)
+				// Tenta achar o usuário pelo e-mail
 				u = em.createQuery("SELECT u FROM Usuario u WHERE u.email = :email", Usuario.class)
 						.setParameter("email", email).getSingleResult();
 			} catch (NoResultException e) {
-				// Se não achar, o 'u' continua null e ignoramos silenciosamente
+				// Usuário não encontrado: 'u' permanece null
 			}
 
-			// Só processa se o usuário existir E estiver ativo!
+			// Só processa se o usuário existir E estiver ativo
 			if (u != null && u.isAtivo()) {
 
-				// 1. Gera o Token (UUID) e a validade (30 minutos a partir de agora)
+				// 1. Gera o Token e a validade
 				String token = UUID.randomUUID().toString();
 				u.setTokenRecuperacao(token);
 				u.setTokenExpiracao(LocalDateTime.now().plusMinutes(30));
 
-				// 2. Prepara o link mágico (VERIFIQUE SE A SUA PORTA É A 8080 MESMO)
-				String link = "http://localhost:8080/erp/RedefinirSenhaServlet?token=" + token;
+				// 2. Monta a URL dinâmica (A "ajeitadinha" profissional)
+				String urlBase = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
+						+ request.getContextPath();
 
-				String textoEmail = "Olá " + u.getNome() + ",\n\n"
-						+ "Você solicitou a recuperação de senha no nosso sistema.\n"
-						+ "Clique no link abaixo para criar uma nova senha. Este link expira em 30 minutos.\n\n" + link;
+				String linkRecuperacao = urlBase + "/RedefinirSenhaServlet?token=" + token;
 
-				// 3. Chama o nosso carteiro
+				// 3. Monta o corpo do e-mail (Variável única agora)
+				String corpoEmail = "Olá " + u.getNome() + ",\n\n"
+						+ "Você solicitou a recuperação de senha no ERP Farmácia.\n"
+						+ "Clique no link abaixo para criar uma nova senha. Este link expira em 30 minutos:\n\n"
+						+ linkRecuperacao + "\n\n" + "Se você não solicitou isso, apenas ignore este e-mail.";
+
+				// 4. Envia o e-mail
 				EmailService carteiro = new EmailService();
-				carteiro.enviarEmail(u.getEmail(), "Recuperação de Senha - ERP", textoEmail);
+				carteiro.enviarEmail(u.getEmail(), "Recuperação de Senha - ERP", corpoEmail);
+
+				// 5. IMPORTANTE: Salva as alterações no banco!
+				em.getTransaction().commit();
+			} else {
+				// Mesmo que não exista, não commitamos nada
+				if (em.getTransaction().isActive()) {
+					em.getTransaction().rollback();
+				}
 			}
 
-			// Salva as alterações no banco (o UUID e a hora)
-			em.getTransaction().commit();
-
-			// 4. Nossa filosofia MVC: Passa a mensagem e delega o visual para um JSP
+			// Redireciona para uma página de sucesso (evita o usuário dar F5 e reenviar)
 			request.setAttribute("mensagem",
-					"Se o e-mail estiver cadastrado em nossa base, você receberá um link com instruções.");
+					"Se o e-mail existir em nossa base, você receberá as instruções em instantes.");
 			request.getRequestDispatcher("/mensagem.jsp").forward(request, response);
 
 		} catch (Exception e) {
 			if (em.getTransaction().isActive())
 				em.getTransaction().rollback();
 			e.printStackTrace();
-			throw new ServletException("Erro ao processar recuperação de senha", e);
+			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Erro ao processar recuperação.");
 		} finally {
 			em.close();
 		}
