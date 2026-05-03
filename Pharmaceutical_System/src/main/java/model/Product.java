@@ -7,10 +7,14 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 
 @Entity
 @Table(name = "produtos")
+@NamedQueries({
+		@NamedQuery(name = "Product.findActiveWithStock", query = "SELECT p FROM Product p WHERE p.active = true AND p.currentStock > 0") })
 public class Product {
 
 	@Id

@@ -28,16 +28,11 @@ public class CheckoutServlet extends HttpServlet {
 			throws ServletException, IOException {
 		EntityManager em = JPAUtil.getEntityManager();
 		try {
-			// CORREÇÃO 1: Usando os nomes das variáveis em inglês da classe Product
-			List<Product> products = em
-					.createQuery("SELECT p FROM Product p WHERE p.active = true AND p.currentStock > 0", Product.class)
-					.getResultList();
 
-			// CORREÇÃO 2: Usando NativeQuery para falar direto com a tabela no MySQL,
-			// já que ainda não temos a entidade Client mapeada.
+			List<Product> products = em.createNamedQuery("Product.findActiveWithStock", Product.class).getResultList();
+
 			List<Object[]> clients = em.createNativeQuery("SELECT id, nome_completo, cpf FROM clientes")
 					.getResultList();
-
 			request.setAttribute("productsList", products);
 			request.setAttribute("clientsList", clients);
 

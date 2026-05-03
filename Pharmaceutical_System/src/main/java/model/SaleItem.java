@@ -9,11 +9,15 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
 @Entity
 @Table(name = "itens_venda")
+@NamedQuery(name = "SaleItem.topSelling", query = "SELECT p.name, SUM(i.quantity) as totalVendido "
+		+ "FROM SaleItem i, Product p " + "WHERE i.productId = p.id " + "GROUP BY p.name "
+		+ "ORDER BY totalVendido DESC")
 public class SaleItem {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
