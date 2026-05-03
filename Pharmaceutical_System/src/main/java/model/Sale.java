@@ -13,11 +13,16 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 @Entity
 @Table(name = "vendas") // A mágica: Classe em inglês, tabela em português!
+@NamedQueries({
+		@NamedQuery(name = "Sale.revenueByPayment", query = "SELECT s.paymentMethod, SUM(s.totalAmount) FROM Sale s GROUP BY s.paymentMethod") })
+
 public class Sale {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
