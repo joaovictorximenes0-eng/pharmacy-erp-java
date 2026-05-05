@@ -11,6 +11,7 @@ import javax.persistence.Id;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "produtos")
@@ -58,7 +59,7 @@ public class Product {
 
 	// O requisito de validade que faltava!
 	@Column(name = "data_validade")
-	private LocalDate expiryDate;
+	private LocalDate expirationDate;
 
 	// ==========================================
 	// GETTERS E SETTERS
@@ -152,11 +153,10 @@ public class Product {
 		this.active = active;
 	}
 
-	public LocalDate getExpiryDate() {
-		return expiryDate;
+	public LocalDate getExpirationDate() {
+	    return expirationDate;
 	}
-
-	public void setExpiryDate(LocalDate expiryDate) {
-		this.expiryDate = expiryDate;
+	public void setExpirationDate(LocalDate expirationDate) {
+	    this.expirationDate = expirationDate;
 	}
 }
