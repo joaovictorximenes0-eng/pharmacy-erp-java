@@ -3,11 +3,7 @@ package controller;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -15,110 +11,131 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import config.AppPaths;
+import config.JPAUtil;
 import model.Product;
+import service.ProductService;
 
 @WebServlet("/ProductServlet")
 public class ProductServlet extends HttpServlet {
-	private static final long serialVersionUID = 1L;
 
-	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
+    private static final long serialVersionUID = 1L;
 
-		EntityManagerFactory emf = Persistence.createEntityManagerFactory("erp"); // Confirme o nome do seu
-																					// persistence-unit
-		EntityManager em = emf.createEntityManager();
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
 
-		try {
-			// Busca todos os produtos ativos no banco
-			List<Product> produtos = em.createQuery("SELECT p FROM Product p WHERE p.active = true", Product.class)
-					.getResultList();
+        EntityManager em = JPAUtil.getEntityManager();
+        ProductService service = new ProductService(em);
 
-			// Envia a lista para o JSP com o nome "produtosCadastrados"
-			request.setAttribute("produtosCadastrados", produtos);
+        try {
+            String action = request.getParameter("action");
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			em.close();
-			emf.close();
-		}
+            if ("editar".equals(action)) {
+                Long id = Long.parseLong(request.getParameter("id"));
+                Product product = service.buscarPorId(id);
+                request.setAttribute("produto", product);
+                request.getRequestDispatcher(AppPaths.PRODUTO_FORM)
+                       .forward(request, response);
 
-		request.getRequestDispatcher(AppPaths.ENTRADA_ESTOQUE).forward(request, response);
-	}
+            } else if ("desativar".equals(action)) {
+            	Long id = Long.parseLong(request.getParameter("id"));
+                em.getTransaction().begin();
+                service.desativar(id);
+                em.getTransaction().commit();
+                response.sendRedirect(request.getContextPath() + "/ProductServlet");
 
-	@Override
-	protected void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
+            } else if ("estoqueBaixo".equals(action)) {
+                request.setAttribute("produtos", service.listarEstoqueBaixo());
+                request.setAttribute("alertaEstoque", true);
+                request.getRequestDispatcher(AppPaths.PRODUTO_LISTA)
+                       .forward(request, response);
 
-		String acao = request.getParameter("acao");
+            } else if ("novo".equals(action)) {
+                request.getRequestDispatcher(AppPaths.PRODUTO_FORM)
+                       .forward(request, response);
 
-		if ("salvar".equals(acao)) {
-			// 1. Inicia a conexão com o Banco (Ajuste o nome da sua Unidade de
-			// Persistência)
-			EntityManagerFactory emf = Persistence.createEntityManagerFactory("erp-farmacia");
-			EntityManager em = emf.createEntityManager();
+            } else {
+                request.setAttribute("produtos", service.listarTodos());
+                request.getRequestDispatcher(AppPaths.PRODUTO_LISTA)
+                       .forward(request, response);
+            }
 
-			try {
-				// 2. Pega os dados do formulário
-				String barcode = request.getParameter("barcode");
-				String name = request.getParameter("name");
-				Integer quantidadeRecebida = Integer.parseInt(request.getParameter("currentStock"));
+        } catch (Exception e) {
+            if (em.getTransaction().isActive())
+                em.getTransaction().rollback();
+            e.printStackTrace();
+            request.setAttribute("mensagem", "Erro ao carregar produtos.");
+            request.getRequestDispatcher(AppPaths.PRODUTO_LISTA)
+                   .forward(request, response);
+        } finally {
+            if (em.isOpen()) em.close();
+        }
+    }
 
-				em.getTransaction().begin();
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
 
-				// 3. TENTA BUSCAR O PRODUTO PELO CÓDIGO DE BARRAS
-				List<Product> resultados = em
-						.createQuery("SELECT p FROM Product p WHERE p.barcode = :barcode", Product.class)
-						.setParameter("barcode", barcode).getResultList();
+        EntityManager em = JPAUtil.getEntityManager();
+        ProductService service = new ProductService(em);
 
-				Product p;
-				String msgFeedback;
+        try {
+            String action = request.getParameter("action");
 
-				if (!resultados.isEmpty()) {
-					// SE JÁ EXISTE: Apenas soma a quantidade!
-					p = resultados.get(0);
-					p.setCurrentStock(p.getCurrentStock() + quantidadeRecebida);
+            if ("entrada".equals(action)) {
+            	Long id = Long.parseLong(request.getParameter("id"));
+                Integer quantidade = Integer.parseInt(request.getParameter("quantidade"));
+                em.getTransaction().begin();
+                service.entradaEstoque(id, quantidade);
+                em.getTransaction().commit();
+                response.sendRedirect(request.getContextPath() + "/ProductServlet");
+                return;
+            }
 
-					// Atualiza preços caso tenham mudado na nova remessa
-					p.setCostPrice(new BigDecimal(request.getParameter("costPrice")));
-					p.setSalePrice(new BigDecimal(request.getParameter("salePrice")));
-					p.setExpiryDate(LocalDate.parse(request.getParameter("expiryDate")));
+            Product product = new Product();
 
-					em.merge(p); // Atualiza no banco
-					msgFeedback = "Estoque do produto '" + p.getName() + "' atualizado! Nova quantidade: "
-							+ p.getCurrentStock();
-				} else {
-					// SE NÃO EXISTE: Cria um novo cadastro
-					p = new Product();
-					p.setBarcode(barcode);
-					p.setName(name);
-					p.setDescription(request.getParameter("description"));
-					p.setCostPrice(new BigDecimal(request.getParameter("costPrice")));
-					p.setSalePrice(new BigDecimal(request.getParameter("salePrice")));
-					p.setCurrentStock(quantidadeRecebida);
-					p.setMinStock(Integer.parseInt(request.getParameter("minStock")));
-					p.setExpiryDate(LocalDate.parse(request.getParameter("expiryDate")));
-					p.setActive(true);
+            String idParam = request.getParameter("id");
+            if (idParam != null && !idParam.isEmpty()) {
+                product = service.buscarPorId(Long.parseLong(idParam));
+            }
 
-					em.persist(p); // Salva novo no banco
-					msgFeedback = "Novo produto '" + p.getName() + "' cadastrado com sucesso!";
-				}
+            product.setName(request.getParameter("nome"));
+            product.setBarcode(request.getParameter("codigoBarras"));
+            product.setDescription(request.getParameter("descricao"));
+            product.setCostPrice(new BigDecimal(request.getParameter("precoCusto")));
+            product.setSalePrice(new BigDecimal(request.getParameter("precoVenda")));
+            product.setCurrentStock(Integer.parseInt(request.getParameter("qtdAtual")));
+            product.setMinStock(Integer.parseInt(request.getParameter("qtdMinima")));
 
-				em.getTransaction().commit();
-				request.setAttribute("mensagem", msgFeedback);
+            String dataValidade = request.getParameter("dataValidade");
+            if (dataValidade != null && !dataValidade.isEmpty()) {
+                product.setExpirationDate(LocalDate.parse(dataValidade));
+            }
 
-			} catch (Exception e) {
-				if (em.getTransaction().isActive())
-					em.getTransaction().rollback();
-				e.printStackTrace();
-				request.setAttribute("erro", "Erro ao processar: " + e.getMessage());
-			} finally {
-				em.close();
-				emf.close();
-			}
+            String categoriaId = request.getParameter("categoriaId");
+            if (categoriaId != null && !categoriaId.isEmpty()) {
+                product.setCategoryId(Integer.parseInt(categoriaId));
+            }
 
-			request.getRequestDispatcher(AppPaths.ENTRADA_ESTOQUE).forward(request, response);
-		}
-	}
+            em.getTransaction().begin();
+            if (product.getId() == null) {
+                service.cadastrar(product);
+            } else {
+                service.atualizar(product);
+            }
+            em.getTransaction().commit();
+
+            response.sendRedirect(request.getContextPath() + "/ProductServlet");
+
+        } catch (Exception e) {
+            if (em.getTransaction().isActive())
+                em.getTransaction().rollback();
+            e.printStackTrace();
+            request.setAttribute("mensagem", "Erro: " + e.getMessage());
+            request.getRequestDispatcher(AppPaths.PRODUTO_FORM)
+                   .forward(request, response);
+        } finally {
+            if (em.isOpen()) em.close();
+        }
+    }
 }
