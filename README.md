@@ -47,14 +47,14 @@ O projeto foi desenvolvido em Java com foco em **segurança, organização modul
 
 ## III. Gestão de Produtos e Estoque (13-20)
 
-* [ ] Cadastro de produtos
-* [ ] Edição de produtos
+* [X] Cadastro de produtos
+* [X] Edição de produtos
 * [ ] Exclusão lógica
-* [ ] Listagem
-* [ ] Associação com categorias
-* [ ] Associação com fornecedores
-* [ ] Controle de estoque (quantidade atual/mínima)
-* [ ] Alertas automáticos de estoque baixo
+* [X] Listagem
+* [URGENTE] Associação com categorias
+* [URGENTE] Associação com fornecedores
+* [X] Controle de estoque (quantidade atual/mínima)
+* [PARCIAL] Alertas automáticos de estoque baixo
 
 ---
 
