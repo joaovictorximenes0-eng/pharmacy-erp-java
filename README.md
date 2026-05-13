@@ -186,8 +186,9 @@ CMD ["catalina.sh", "run"]
 ```
 
 > ℹ️ O WAR é gerado localmente com `mvn clean package` e copiado para dentro da imagem no momento do `docker-compose up --build`.
+> Se você estiver rodando o Docker via terminal e quiser atualizar a tela, abra outro terminal e uso o comando  `mvn clean package && sudo docker compose restart app`
 
----
+--- 
 
 # ⚙️ Executando Localmente (Sem Docker)
 
