@@ -16,6 +16,7 @@ import config.JPAUtil;
 import model.Perfil;
 import model.Product;
 import model.Purchase;
+import model.Sale;
 import model.Supplier;
 import model.Usuario;
 import service.ReportService;
@@ -116,7 +117,25 @@ public class ReportServlet extends HttpServlet {
                 ReportGenerator.fornecedoresCsv(fornecedores, response.getWriter());
                 return;
             }
+<<<<<<< HEAD
 
+=======
+            if ("vendas-pdf".equals(action)) {
+                List<Sale> vendas = service.relatorioVendas();
+                response.setContentType("application/pdf");
+                response.setHeader("Content-Disposition", "attachment; filename=vendas.pdf");
+                ReportGenerator.vendasPdf(vendas, response.getOutputStream());
+                return;
+            }
+            if ("vendas-csv".equals(action)) {
+                List<Sale> vendas = service.relatorioVendas();
+                response.setContentType("text/csv; charset=UTF-8");
+                response.setHeader("Content-Disposition", "attachment; filename=vendas.csv");
+                ReportGenerator.vendasCsv(vendas, response.getWriter());
+                return;
+            }
+            // --- TELA PRINCIPAL ---
+>>>>>>> main
             request.setAttribute("totalEstoqueBaixo", service.relatorioEstoqueBaixo().size());
             request.setAttribute("totalCompras", service.relatorioCompras().size());
             request.setAttribute("totalFornecedores", service.relatorioFornecedores().size());
