@@ -700,3 +700,87 @@ body {
     padding: 4px 10px;
     font-size: 12px;
 }
+
+/* =============================================
+   TABELAS RESPONSIVAS
+   ============================================= */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 20px 0;
+    border-radius: var(--radius);
+}
+
+.table-responsive table {
+    min-width: 650px;   /* largura mínima para evitar quebra muito agressiva */
+    width: 100%;
+}
+
+/* Ajuste para o container-wide em telas pequenas */
+@media (max-width: 1024px) {
+    .container-wide, .container, .container-dashboard, .checkout-container {
+        padding: 16px;
+        margin: 0 10px;
+        width: auto;
+    }
+}
+
+/* Para telas muito pequenas, reduz fonte da tabela */
+@media (max-width: 640px) {
+    .table-responsive table {
+        font-size: 12px;
+    }
+    th, td {
+        padding: 8px 6px;
+    }
+}
+.container-wide {
+    width: 100%;
+    max-width: 1400px; 
+    margin: 40px auto;
+    padding: 20px 24px;
+    background: var(--branco);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--sombra);
+    border: 1px solid var(--borda);
+    box-sizing: border-box;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 20px;
+    font-size: 14px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--sombra-sm);
+}
+
+/* Para tabelas dentro de .container-wide, garantir que as células quebrem */
+.container-wide th,
+.container-wide td {
+    white-space: normal;          /* permite quebra de linha */
+    word-break: break-word;       /* evita estouro de palavras longas */
+    min-width: 80px;              /* evita colunas muito estreitas */
+}
+
+/* Em telas muito pequenas, escondemos colunas menos importantes */
+@media (max-width: 800px) {
+    .container-wide th:nth-child(3),
+    .container-wide td:nth-child(3),
+    .container-wide th:nth-child(4),
+    .container-wide td:nth-child(4),
+    .container-wide th:nth-child(8),
+    .container-wide td:nth-child(8) {
+        display: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .table-responsive table {
+        font-size: 12px;
+    }
+    th, td {
+        padding: 8px 6px;
+    }
+}
